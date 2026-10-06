@@ -1,0 +1,100 @@
+name: Pratice Workflow
+
+on:
+    workflow_dispatch: 
+    # push:
+    #     branches: [main]
+
+env:
+    ABC: "ANHLONG"
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+
+        outputs:
+            check_status: ${{ steps.check.outputs.status }}
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7.0.1
+
+            - name: Check Docker File
+              id: check
+              run: |
+                  ls -la
+                  test -f Dockerfile
+                  echo "status=success" >> $GITHUB_OUTPUT
+
+            - name: Show
+              # gọi lại step trước bằng id
+              run: echo ${{ steps.check.outputs.status }}
+
+    build:
+        needs: [check]
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Show
+              run: echo ${{ needs.check.outputs.check_status }}
+
+            - name: Check
+              if: ${{ needs.check.outputs.check_status == 'success' }}
+              run: echo ${{ needs.check.outputs.check_status }}
+
+            - name: Checkout
+              uses: actions/checkout@v7.0.1
+
+            - name: create file html email finall
+              env:
+                  REPOSITORY: ${{ github.repository }}
+                  REPOSITORY_OWNER: ${{ github.repository_owner }}
+                  BRANCH: ${{ github.ref_name }}
+                  REF: ${{ github.ref }}
+                  COMMIT_SHA: ${{ github.sha }}
+                  ACTOR: ${{ github.actor }}
+                  WORKFLOW_NAME: ${{ github.workflow }}
+                  JOB_NAME: ${{ github.job }}
+                  EVENT_NAME: ${{ github.event_name }}
+                  RUN_ID: ${{ github.run_id }}
+                  RUN_NUMBER: ${{ github.run_number }}
+                  RUN_ATTEMPT: ${{ github.run_attempt }}
+                  SERVER_URL: ${{ github.server_url }}
+                  REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+                  COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+                  ACTION_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  STATUS: success
+              run: envsubst < email-template.html > email.html
+
+            - name: Send mail
+              uses: dawidd6/action-send-mail@v19
+              with:
+                  # Required mail server address if not connection_url:
+                  server_address: smtp.gmail.com
+
+                  # Server port, default 25:
+                  server_port: 465
+
+                  # Optional whether this connection use TLS (default is true if server_port is 465)
+                  secure: true
+
+                  # Optional (recommended) mail server username:
+                  username: vulebaolong@gmail.com
+
+                  # Optional (recommended) mail server password:
+                  password: gywvrcljfnhitkjy
+
+                  # Required mail subject:
+                  subject: Github Actions job result
+
+                  # Optional recipients. Separate multiple addresses by a comma (possibly surrounded by whitespace):
+                  to: vulebaolong@gmail.com
+
+                  # Required sender (supported formats: see "Supported address formats" below)
+                  from: "Vulebaolong <vulebaolong@example.com>"
+
+                  # Optional plain body:
+                  body: Build job of ${{github.repository}} completed successfully!
+
+                  # Optional HTML body read from file:
+                  html_body: file://email.html

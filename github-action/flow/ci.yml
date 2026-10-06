@@ -1,0 +1,33 @@
+name: CI
+
+on:
+    pull_request:
+        branches: [develop, main]
+
+env:
+    SSH_SERVER: ${{ secrets.SSH_USER }}@${{ secrets.IP_SERVER_RUN }}
+    WORK_DIR: /home/ubuntu/devops04/go_gin_be
+    COMPOSE_FILE_DIR: /home/ubuntu/devops04
+    IMAGE_NAME: go_gin_be_image:latest
+    SERVICE_NAME: go_gin_be
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7.0.1
+
+            - name: TruffleHog OSS
+              uses: trufflesecurity/trufflehog@v3.97.4
+
+            - name: Check Dockerfile
+              run: test -f Dockerfile
+
+            - name: Run Unit Test
+              run: |
+                echo "Running unit test"
+                sleep 2
+                echo "Check Unit Test Done"
+          

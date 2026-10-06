@@ -1,0 +1,91 @@
+name: Deploy Docker Hub
+
+on:
+    workflow_dispatch: 
+    # push:
+    #     branches: [main] 
+
+env:
+    SSH_SERVER: ${{ secrets.SSH_USER }}@${{ secrets.IP_SERVER_RUN }} 
+    WORK_DIR: /home/ubuntu/devops04/go_gin_be
+    COMPOSE_FILE_DIR: /home/ubuntu/devops04
+    IMAGE_NAME: vulebaolong/go_gin_be_image:latest
+    SERVICE_NAME: go_gin_be
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7.0.1
+
+            - name: webfactory/ssh-agent
+              uses: webfactory/ssh-agent@v0.10.0
+              with:
+                  ssh-private-key: ${{ secrets.SSH_KEY }}
+
+            - name: Trust host
+              run: ssh-keyscan -H ${{ secrets.IP_SERVER_RUN }} >> ~/.ssh/known_hosts
+
+            - name: Check Dockerfile
+              run: test -f Dockerfile
+
+            - name: Check env file
+              run: |
+                ssh $SSH_SERVER "
+                    set -e
+                    cd $WORK_DIR
+                    test -f .env
+                "
+
+            - name: Check docker compose file
+              run: |
+                ssh $SSH_SERVER "
+                    set -e
+                    cd $COMPOSE_FILE_DIR
+                    test -f docker-compose.yml
+                "
+
+    build:
+        needs: [check]
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7.0.1
+
+            - name: Docker build image
+              run: docker build -t $IMAGE_NAME .
+
+            - name: Docker login
+              run: docker login -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_PASS }}
+                
+            - name: Docker push
+              run: docker push $IMAGE_NAME
+
+    deploy:
+        needs: [check, build]
+
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: webfactory/ssh-agent
+              uses: webfactory/ssh-agent@v0.10.0
+              with:
+                  ssh-private-key: ${{ secrets.SSH_KEY }}
+
+            - name: Trust host
+              run: ssh-keyscan -H ${{ secrets.IP_SERVER_RUN }} >> ~/.ssh/known_hosts
+
+            - name: Deploy
+              run: |
+                ssh $SSH_SERVER "
+                    set -e
+
+                    cd $COMPOSE_FILE_DIR
+
+                    docker compose pull $SERVICE_NAME
+                    docker compose up -d --force-recreate $SERVICE_NAME
+                    docker image prune -f
+                "
