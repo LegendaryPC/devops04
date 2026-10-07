@@ -1,53 +1,104 @@
 pipeline {
     agent any
 
-    // Định nghĩa các biến môi trường nếu cần sử dụng chung
     environment {
-        APP_NAME = "My_First_CICD_Project"
+        APP_NAME = "java-be"
+        CONTAINER_NAME = "java-be"
+        HOST_PORT = "8083"
+        CONTAINER_PORT = "8081"
+
+        DATABASE_URL = "jdbc:postgresql://172.17.0.2:5432/mydb?user=admin&password=123456&sslmode=disable"
     }
 
     stages {
-        stage('1. Kéo Code (Checkout)') {
+
+        stage('1. Checkout') {
             steps {
-		echo "=== Xin chào đại ca Tiến Anh ========="
-                echo "=== GIAI ĐOẠN 1: Bắt đầu lấy code mới nhất từ GitHub ==="
-                echo "Dự án: ${env.APP_NAME}"
+                echo "=== GIAI ĐOẠN 1: Checkout source code ==="
+
+                // Nếu Jenkins job đã cấu hình Pipeline from SCM
+                // thì Jenkins sẽ tự checkout.
+                checkout scm
             }
         }
 
-        stage('2. Biên dịch (Build)') {
+        stage('2. Build') {
             steps {
-                echo "=== GIAI ĐOẠN 2: Đang giả lập quá trình biên dịch ứng dụng ==="
-                // Sau này bạn có thể thay thế bằng lệnh thực tế chạy trên Mac, ví dụ:
-                // sh 'npm install' hoặc sh './mvnw clean package'
-                sh 'echo "Biên dịch thành công tại thư mục: $WORKSPACE"'
+                echo "=== GIAI ĐOẠN 2: Maven Build ==="
+
+                sh '''
+                    chmod +x mvnw
+                    ./mvnw clean package -DskipTests
+                '''
             }
         }
 
-        stage('3. Kiểm thử (Test)') {
+        stage('3. Test') {
             steps {
-                echo "=== GIAI ĐOẠN 3: Đang chạy các bài kiểm tra tự động ==="
-                // sh 'npm test' hoặc sh './mvnw test'
-                echo "Mọi bài test đều vượt qua (PASS)!"
+                echo "=== GIAI ĐOẠN 3: Running tests ==="
+
+                sh '''
+                    chmod +x mvnw
+                    ./mvnw test
+                '''
             }
         }
 
-        stage('4. Triển khai (Deploy)') {
+        stage('4. Docker Build') {
             steps {
-                echo "=== GIAI ĐOẠN 4: Triển khai sản phẩm lên môi trường Production ==="
-                echo "Hệ thống CI/CD Jenkins hoàn tất thành công!"
+                echo "=== GIAI ĐOẠN 4: Build Docker Image ==="
+
+                sh '''
+                    docker build -t ${APP_NAME}:latest .
+                '''
+            }
+        }
+
+        stage('5. Stop Old Container') {
+            steps {
+                echo "=== GIAI ĐOẠN 5: Stop container cũ ==="
+
+                sh '''
+                    docker rm -f ${CONTAINER_NAME} || true
+                '''
+            }
+        }
+
+        stage('6. Deploy') {
+            steps {
+                echo "=== GIAI ĐOẠN 6: Deploy container mới ==="
+
+                sh '''
+                    docker run -d \
+                        --name ${CONTAINER_NAME} \
+                        -p ${HOST_PORT}:${CONTAINER_PORT} \
+                        -e DATABASE_URL="${DATABASE_URL}" \
+                        ${APP_NAME}:latest
+                '''
+            }
+        }
+
+        stage('7. Check') {
+            steps {
+                echo "=== GIAI ĐOẠN 7: Kiểm tra container ==="
+
+                sh '''
+                    sleep 5
+                    docker ps
+                    docker logs --tail 50 ${CONTAINER_NAME}
+                '''
             }
         }
     }
 
-    // Phần xử lý kết quả sau khi toàn bộ Pipeline chạy xong
     post {
         success {
-            echo 'Chúc mừng! Pipeline chạy THÀNH CÔNG 🎉'
+            echo '🎉 Pipeline chạy THÀNH CÔNG!'
+            echo 'Application: http://localhost:8083'
         }
+
         failure {
-            echo 'Rất tiếc! Pipeline bị LỖI ở một bước nào đó ❌'
+            echo '❌ Pipeline bị lỗi!'
         }
     }
 }
-
