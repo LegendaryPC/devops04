@@ -22,31 +22,20 @@ pipeline {
             }
         }
 
-        stage('Debug') {
-            steps {
-                sh '''
-                    echo "=== Current directory ==="
-                    pwd
 
-                    echo "=== Project files ==="
-                    ls -la
-
-                    echo "=== Files ==="
-                    find . -maxdepth 2 -type f | sort
-                '''
-            }
-        }
 
         stage('2. Build') {
-            steps {
-                echo "=== GIAI ĐOẠN 2: Maven Build ==="
+              steps {
+                        echo "=== GIAI ĐOẠN 2: Maven Build ==="
 
-                sh '''
-                    chmod +x mvnw
-                    ./mvnw clean package -DskipTests
-                '''
-            }
-        }
+                        dir('java_be') {
+                            sh '''
+                                chmod +x mvnw
+                                ./mvnw clean package -DskipTests
+                            '''
+                        }
+                    }
+                }
 
         stage('3. Test') {
             steps {
