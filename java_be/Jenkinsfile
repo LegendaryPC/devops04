@@ -9,6 +9,8 @@ pipeline {
         CONTAINER_PORT = "8081"
 
         DATABASE_URL = "jdbc:postgresql://172.17.0.2:5432/mydb?user=admin&password=123456&sslmode=disable"
+
+        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
     }
 
     stages {
@@ -52,6 +54,8 @@ pipeline {
 
                 dir('java_be') {
                     sh '''
+                        which docker
+                        docker --version
                         docker build -t ${APP_NAME}:latest .
                     '''
                 }
