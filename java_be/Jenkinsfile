@@ -1,0 +1,53 @@
+pipeline {
+    agent any
+
+    // Định nghĩa các biến môi trường nếu cần sử dụng chung
+    environment {
+        APP_NAME = "My_First_CICD_Project"
+    }
+
+    stages {
+        stage('1. Kéo Code (Checkout)') {
+            steps {
+		echo "=== Xin chào đại ca Tiến Anh ========="
+                echo "=== GIAI ĐOẠN 1: Bắt đầu lấy code mới nhất từ GitHub ==="
+                echo "Dự án: ${env.APP_NAME}"
+            }
+        }
+
+        stage('2. Biên dịch (Build)') {
+            steps {
+                echo "=== GIAI ĐOẠN 2: Đang giả lập quá trình biên dịch ứng dụng ==="
+                // Sau này bạn có thể thay thế bằng lệnh thực tế chạy trên Mac, ví dụ:
+                // sh 'npm install' hoặc sh './mvnw clean package'
+                sh 'echo "Biên dịch thành công tại thư mục: $WORKSPACE"'
+            }
+        }
+
+        stage('3. Kiểm thử (Test)') {
+            steps {
+                echo "=== GIAI ĐOẠN 3: Đang chạy các bài kiểm tra tự động ==="
+                // sh 'npm test' hoặc sh './mvnw test'
+                echo "Mọi bài test đều vượt qua (PASS)!"
+            }
+        }
+
+        stage('4. Triển khai (Deploy)') {
+            steps {
+                echo "=== GIAI ĐOẠN 4: Triển khai sản phẩm lên môi trường Production ==="
+                echo "Hệ thống CI/CD Jenkins hoàn tất thành công!"
+            }
+        }
+    }
+
+    // Phần xử lý kết quả sau khi toàn bộ Pipeline chạy xong
+    post {
+        success {
+            echo 'Chúc mừng! Pipeline chạy THÀNH CÔNG 🎉'
+        }
+        failure {
+            echo 'Rất tiếc! Pipeline bị LỖI ở một bước nào đó ❌'
+        }
+    }
+}
+
