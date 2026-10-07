@@ -4,6 +4,7 @@ pipeline {
     environment {
         APP_NAME = "java-be"
         CONTAINER_NAME = "java-be"
+
         HOST_PORT = "8083"
         CONTAINER_PORT = "8081"
 
@@ -15,52 +16,51 @@ pipeline {
         stage('1. Checkout') {
             steps {
                 echo "=== GIAI ĐOẠN 1: Checkout source code ==="
-
-                // Nếu Jenkins job đã cấu hình Pipeline from SCM
-                // thì Jenkins sẽ tự checkout.
                 checkout scm
             }
         }
 
-
-
         stage('2. Build') {
-              steps {
-                        echo "=== GIAI ĐOẠN 2: Maven Build ==="
+            steps {
+                echo "=== GIAI ĐOẠN 2: Maven Build ==="
 
-                        dir('java_be') {
-                            sh '''
-                                chmod +x mvnw
-                                ./mvnw clean package -DskipTests
-                            '''
-                        }
-                    }
+                dir('java_be') {
+                    sh '''
+                        chmod +x mvnw
+                        ./mvnw clean package -DskipTests
+                    '''
                 }
+            }
+        }
 
         stage('3. Test') {
             steps {
                 echo "=== GIAI ĐOẠN 3: Running tests ==="
 
-                sh '''
-                    chmod +x mvnw
-                    ./mvnw test
-                '''
+                dir('java_be') {
+                    sh '''
+                        chmod +x mvnw
+                        ./mvnw test
+                    '''
+                }
             }
         }
 
         stage('4. Docker Build') {
             steps {
-                echo "=== GIAI ĐOẠN 4: Build Docker Image ==="
+                echo "=== GIAI ĐOẠN 4: Docker Build ==="
 
-                sh '''
-                    docker build -t ${APP_NAME}:latest .
-                '''
+                dir('java_be') {
+                    sh '''
+                        docker build -t ${APP_NAME}:latest .
+                    '''
+                }
             }
         }
 
         stage('5. Stop Old Container') {
             steps {
-                echo "=== GIAI ĐOẠN 5: Stop container cũ ==="
+                echo "=== GIAI ĐOẠN 5: Stop old container ==="
 
                 sh '''
                     docker rm -f ${CONTAINER_NAME} || true
@@ -70,7 +70,7 @@ pipeline {
 
         stage('6. Deploy') {
             steps {
-                echo "=== GIAI ĐOẠN 6: Deploy container mới ==="
+                echo "=== GIAI ĐOẠN 6: Deploy ==="
 
                 sh '''
                     docker run -d \
@@ -84,7 +84,7 @@ pipeline {
 
         stage('7. Check') {
             steps {
-                echo "=== GIAI ĐOẠN 7: Kiểm tra container ==="
+                echo "=== GIAI ĐOẠN 7: Check application ==="
 
                 sh '''
                     sleep 5
