@@ -27,4 +27,10 @@ public class HelloController {
 		List<String> users = jdbcTemplate.queryForList("SELECT name FROM users", String.class);
 		return Map.of("source_code", "java", "users", users);
 	}
+
+	@GetMapping("/people")
+	public Map<String, Object> peoples() {
+		List<String> people = jdbcTemplate.queryForList("SELECT first_name FROM people limit 100 ", String.class);
+		return Map.of("source_code", "java", "people", people);
+	}
 }
